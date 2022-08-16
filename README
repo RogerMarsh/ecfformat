@@ -1,0 +1,63 @@
+==================================
+ECF results submission file editor
+==================================
+
+.. contents::
+
+
+Description
+===========
+
+Prepare `ECF`_ submission files for results of chess games from events such as tournaments and leagues.
+
+Most data is entered by typing, and the rest is entered by selecting from a limited range of values.
+
+
+Installation Instructions
+=========================
+
+This package is not available on PyPI, or any other package index, but can be installed by typing
+
+   python -m pip install --user --trusted-host solentware.co.uk --find-links http://solentware.co.uk/wheels.html ecfformat
+
+at the command prompt.
+
+See `Python`_ and `pip`_ documentation for alternatives and platform-specific points.
+
+Then run 'python -m pip check' to identify other packages which need to be installed.
+
+
+Run
+===
+
+The command to run this package is:
+
+   python -m ecfformat.ecfformat
+
+You may need to give the path and version of Python depending on your system's configuration:
+
+   <path to python>/python<version> -m ecfformat.ecfformat
+
+   For example
+
+      C:\\Python34\\python -m ecfformat.ecfformat
+
+         on Microsoft Windows or
+
+      python3.4 -m ecfformat.ecfformat
+
+         on Unix-like systems.
+
+Or use the facilities of your desktop (Microsoft Windows, GNOME, KDE, ...) to set up a convenient way of starting results_report.
+
+
+Notes
+=====
+
+The ecfformat package supports the preparation of ECF submission files for events to the `ECF`_.  Submission of these files is left to other software or the `web interface`_ provided by the ECF to do this.
+
+
+.. _ECF: http://englishchess.co.uk
+.. _web interface: http://ecfrating.co.uk/v2/submit/
+.. _Python: https://python.org
+.. _pip: https://packaging.python.org/installing
