@@ -8,7 +8,6 @@ The initial values are taken from file named in self._CONFIGURATION in the
 user's home directory if the file exists.
 
 """
-# This gets a pylint no-name-in-module report but the code runs.
 from solentware_misc.core import configuration
 
 from . import constants
