@@ -13,8 +13,8 @@ from solentware_misc.workarounds.workarounds import (
     text_get_displaychars,
     text_delete_ranges,
 )
+from solentware_misc.gui import bindings
 
-from . import bindings
 from . import help_
 from .. import APPLICATION_NAME
 from ..core import constants
