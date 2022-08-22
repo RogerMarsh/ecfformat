@@ -82,11 +82,7 @@ class Menus(bindings.Bindings):
     _TITLE_SUFFIX = ""
     _sequences = ()
     _allowed_inserts = {}
-    _NEW_FILE_TEXT = "\n".join(
-        (
-            "#EVENT DETAILS",
-        )
-    )
+    _NEW_FILE_TEXT = "\n".join(("#EVENT DETAILS",))
     _RSF_EXT = ".txt"
     _RSF_PATTERN = "*" + _RSF_EXT
     _RSF_TYPE = "ECF results submission file"
