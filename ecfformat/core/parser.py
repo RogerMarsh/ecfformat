@@ -80,9 +80,9 @@ class Parser:
 
     """
 
-    def __init__(self, text, value_edge):
+    def __init__(self, text, value_edge, no_value_tags):
         """Initialise the data structure."""
-        self.fields = fields.FieldsFromText(text, value_edge)
+        self.fields = fields.FieldsFromText(text, value_edge, no_value_tags)
         self._expected_fields = None
         self._table = None
         self._switch = {
@@ -193,7 +193,6 @@ class Parser:
                 ),
                 stop_at,
             )
-        self.fields.set_next_mark(widget)
         return self.fields
 
     def _process_leading_text(self, widget, match):

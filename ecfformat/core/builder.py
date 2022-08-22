@@ -60,9 +60,9 @@ class Builder:
 
     """
 
-    def __init__(self, dump, value_edge):
+    def __init__(self, dump, value_edge, no_value_tags):
         """Initialise the data structure."""
-        self.fields = fields.FieldsFromDump(dump, value_edge)
+        self.fields = fields.FieldsFromDump(dump, value_edge, no_value_tags)
         self.tag_edges = {
             constants.TK_TEXT_DUMP_TAGON: [],
             constants.TK_TEXT_DUMP_TAGOFF: [],

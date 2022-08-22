@@ -228,7 +228,7 @@ class Fields:
 
     """
 
-    def __init__(self, value_edge):
+    def __init__(self, value_edge, no_value_tags):
         """Initialise the data structure."""
         self.tag_suffix = {}
         for key in SUFFIX_INCREMENT_NAMES:
@@ -236,7 +236,11 @@ class Fields:
         self._fields_message = None
         self.value_edge = value_edge
         self.error_tag = None
-        self.prior_next_mark = [0, 0, None]
+        self.value_mark_suffix = 0
+        if no_value_tags is None:
+            self.no_value_tags = frozenset()
+        else:
+            self.no_value_tags = frozenset(no_value_tags)
 
     def text_getter(self):
         """Override this method in subclasses and return a str."""
@@ -296,36 +300,6 @@ class Fields:
                 break
         return start
 
-    def set_next_mark(self, widget):
-        """Set suffixed mark if next mark not same as prior mark.
-
-        Set prior mark same as next mark before return.
-
-        The call to insert_and_tag_name_value_into_document() for field(n+1)
-        does the set_next_mark() call for field(n).  Thus the loop which
-        processes the fields must be followed by a set_next_mark() call to
-        get the last field's mark set.  That extra call will do nothing if
-        allocate_next_mark() was not called for the last field.  (The
-        FINISH field for example.)
-
-        """
-        prior_next_mark = self.prior_next_mark
-        if prior_next_mark[0] == prior_next_mark[1]:
-            return
-        prior_next_mark[0] = prior_next_mark[1]
-        name = constants.FIELD_VALUE_TAG + str(prior_next_mark[1])
-        widget.mark_set(name, prior_next_mark[2])
-        widget.mark_gravity(name, tkinter.LEFT)
-        prior_next_mark[2] = None
-
-    def allocate_next_mark(self, index):
-        """Increment next mark suffix by 1 if same as prior mark suffix."""
-        prior_next_mark = self.prior_next_mark
-        prior_next_mark[2] = index
-        if prior_next_mark[0] != prior_next_mark[1]:
-            return
-        prior_next_mark[1] += 1
-
     def _insert_name_value(self, widget, name, value, status):
         """Generate tag suffix and append name, value, and tags to items.
 
@@ -374,11 +348,9 @@ class Fields:
             field_tags = self.get_identity_tags_for_new_field(
                 name, part_names, fieldset_names
             )
-        mark_index = self.insert_and_tag_name_value_into_document(
+        self.insert_and_tag_name_value_into_document(
             widget, field_tags, name, value
         )
-        if mark_index is not None and name not in FIELDS_WITHOUT_VALUE:
-            self.allocate_next_mark(mark_index)
 
     def insert_name_value(self, widget, name, *args):
         """Insert newline if needed by name, delegate to _insert_name_value."""
@@ -423,10 +395,6 @@ class Fields:
         # start_not_elided = widget.index(tkinter.INSERT)
         widget.insert(tkinter.INSERT, constants.FIELD_SEPARATOR)
 
-        # Set the edit/insert mark for previous <name=value> because there
-        # is certainly a character after the '=' now.
-        self.set_next_mark(widget)
-
         if name:
             start = widget.index(tkinter.INSERT)
 
@@ -442,10 +410,15 @@ class Fields:
             for tag in tags:
                 widget.tag_add(tag, start, end)
         if value is None:
-            return None
+            return
         if name is not None:
             widget.insert(tkinter.INSERT, constants.NAME_VALUE_SEPARATOR, tags)
         start_value = widget.index(tkinter.INSERT)
+        if name not in self.no_value_tags:
+            self.value_mark_suffix += 1
+            mark_name = constants.FIELD_VALUE_TAG + str(self.value_mark_suffix)
+            widget.mark_set(mark_name, start_value)
+            widget.mark_gravity(mark_name, tkinter.LEFT)
         if value:
             start = start_value
             if self.value_edge:
@@ -456,7 +429,10 @@ class Fields:
                 )
                 start_value = widget.index(tkinter.INSERT)
                 start = start_value
-            widget.insert(tkinter.INSERT, value, constants.FIELD_VALUE_TAG)
+            if name not in self.no_value_tags:
+                widget.insert(tkinter.INSERT, value, constants.FIELD_VALUE_TAG)
+            else:
+                widget.insert(tkinter.INSERT, value)
             end = widget.index(tkinter.INSERT)
             for tag in tags:
                 widget.tag_add(tag, start, end)
@@ -464,7 +440,7 @@ class Fields:
                 widget.insert(
                     end, constants.BOUNDARY, constants.UI_VALUE_BOUNDARY_TAG
                 )
-        return start_value
+        return
 
     def _get_new_part_identity_tags(self, name, part_names, fieldset_names):
         """Return part and fieldset tag names for new part field."""

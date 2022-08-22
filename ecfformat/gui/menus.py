@@ -8,7 +8,11 @@ import os
 import tkinter
 import tkinter.messagebox
 import tkinter.filedialog
-import ast
+
+from solentware_misc.workarounds.workarounds import (
+    text_get_displaychars,
+    text_delete_ranges,
+)
 
 from . import bindings
 from . import help_
@@ -21,8 +25,6 @@ from ..core import sequences
 
 STARTUP_MINIMUM_WIDTH = 800
 STARTUP_MINIMUM_HEIGHT = 400
-TK_TEXT_DUMP_EXT = ".tk_text_dump"
-TEXT_EXT = ".txt"
 
 
 def _define_insert_method(sequence_insert_map_item):
@@ -80,6 +82,16 @@ class Menus(bindings.Bindings):
     _TITLE_SUFFIX = ""
     _sequences = ()
     _allowed_inserts = {}
+    _NEW_FILE_TEXT = "\n".join(
+        (
+            "#EVENT DETAILS",
+        )
+    )
+    _RSF_EXT = ".txt"
+    _RSF_PATTERN = "*" + _RSF_EXT
+    _RSF_TYPE = "ECF results submission file"
+    _TK_TEXT_DUMP_EXT = ".tk_text_dump"
+    _NO_VALUE_TAGS = None
 
     def __init__(
         self,
@@ -299,7 +311,7 @@ class Menus(bindings.Bindings):
 
     def _hide_value_boundaries(self):
         """Adjust settings to hide value boundaries."""
-        configuration.Configuration().set_configuration_value(
+        self._make_configuration().set_configuration_value(
             constants.SHOW_VALUE_BOUNDARY,
             constants.SHOW_VALUE_BOUNDARY_FALSE,
         )
@@ -307,7 +319,7 @@ class Menus(bindings.Bindings):
 
     def _show_value_boundaries(self):
         """Adjust settings to show value boundaries."""
-        configuration.Configuration().set_configuration_value(
+        self._make_configuration().set_configuration_value(
             constants.SHOW_VALUE_BOUNDARY,
             constants.SHOW_VALUE_BOUNDARY_TRUE,
         )
@@ -324,8 +336,7 @@ class Menus(bindings.Bindings):
         # The tkinter.Text.delete() method does not support multiple ranges
         # but the underlying tk.Text.delete() call does support them (as
         # stated in the Tcl/Tk text manual page).
-        # (This hack probably belongs in solentware_misc.workarounds).
-        self.widget.tk.call(self.widget._w, "delete", *ranges)
+        text_delete_ranges(self.widget, *ranges)
 
     def show_value_boundaries(self):
         """Display the widget content with value boundaries."""
@@ -350,18 +361,16 @@ class Menus(bindings.Bindings):
             for index in reversed(range_):
                 widget.insert(index, boundary, boundary_tag)
 
-    @staticmethod
-    def _accept_dump_as_valid():
+    def _accept_dump_as_valid(self):
         """Adjust settings to accept dump tags without any checks."""
-        configuration.Configuration().set_configuration_value(
+        self._make_configuration().set_configuration_value(
             constants.CHECK_NAME_COUNT,
             constants.CHECK_NAME_COUNT_FALSE,
         )
 
-    @staticmethod
-    def _check_dump_name_counts():
+    def _check_dump_name_counts(self):
         """Adjust settings to verify name tag count equals # char count."""
-        configuration.Configuration().set_configuration_value(
+        self._make_configuration().set_configuration_value(
             constants.CHECK_NAME_COUNT,
             constants.CHECK_NAME_COUNT_TRUE,
         )
@@ -377,7 +386,7 @@ class Menus(bindings.Bindings):
                 (
                     "Text has been modified.\n\n",
                     "Do you wish to save edits before closing file?",
-                    "(Yes / No)\nCancel to abandon closing file.",
+                    " (Yes / No)\n\nCancel to abandon closing file.",
                 )
             )
             title = "Close"
@@ -415,7 +424,7 @@ class Menus(bindings.Bindings):
                 (
                     "Text has been modified.\n\n",
                     "Do you wish to save edits before opening a file?",
-                    "(Yes / No)\nCancel to abandon opening file.",
+                    " (Yes / No)\n\nCancel to abandon opening file.",
                 )
             )
             dlg = tkinter.messagebox.askyesnocancel(
@@ -440,12 +449,12 @@ class Menus(bindings.Bindings):
                         title=title,
                     ):
                         return
-        conf = configuration.Configuration()
+        conf = self._make_configuration()
         filename = tkinter.filedialog.askopenfilename(
             parent=self.widget,
             title=title,
             filetypes=(
-                ("ECF results submission file", "*.txt"),
+                (self._RSF_TYPE, self._RSF_PATTERN),
                 ("All files", "*"),
             ),
             initialdir=conf.get_configuration_value(
@@ -464,14 +473,13 @@ class Menus(bindings.Bindings):
             conf.convert_home_directory_to_tilde(os.path.dirname(filename)),
         )
         self.widget.delete("1.0", tkinter.END)
-        show_boundary = bool(
-            conf.get_configuration_value(constants.SHOW_VALUE_BOUNDARY)
-            == constants.SHOW_VALUE_BOUNDARY_TRUE
-        )
+        show_boundary = self._show_value_boundary(conf)
         if dump is None:
-            parser = content.Content(text, show_boundary)
+            parser = content.Content(text, show_boundary, self._NO_VALUE_TAGS)
         else:
-            parser = taggedcontent.TaggedContent(dump, show_boundary)
+            parser = taggedcontent.TaggedContent(
+                dump, show_boundary, self._NO_VALUE_TAGS
+            )
         self.content = parser.parse(self.widget, stop_at=None)
         if self.content.fields_message is not None:
             tkinter.messagebox.showinfo(
@@ -479,7 +487,7 @@ class Menus(bindings.Bindings):
                 message=self.content.fields_message,
                 title=title,
             )
-        self.filename = name + TEXT_EXT
+        self.filename = name + self._RSF_EXT
         self.widget.winfo_toplevel().wm_title(self.set_title_suffix(filename))
         self.widget.edit_modified(tkinter.FALSE)
         return
@@ -492,7 +500,7 @@ class Menus(bindings.Bindings):
                 (
                     "Text has been modified.\n\n",
                     "Do you wish to save edits before opening new file?",
-                    "(Yes / No)\nCancel to abandon new file.",
+                    " (Yes / No)\n\nCancel to abandon new file.",
                 )
             )
             dlg = tkinter.messagebox.askyesnocancel(
@@ -518,32 +526,11 @@ class Menus(bindings.Bindings):
                     ):
                         return
         self.widget.delete("1.0", tkinter.END)
-        conf = configuration.Configuration()
+        conf = self._make_configuration()
         parser = content.Content(
-            "\n".join(
-                (
-                    "#EVENT DETAILS",
-                    "#EVENT CODE=",
-                    "#EVENT NAME=",
-                    "#SUBMISSION INDEX=",
-                    "#EVENT DATE=",
-                    "#FINAL RESULT DATE=",
-                    "#RESULTS OFFICER=",
-                    "#RESULTS OFFICER ADDRESS=",
-                    "#TREASURER=",
-                    "#TREASURER ADDRESS=",
-                    "#MOVES FIRST SESSION=",
-                    "#MINUTES FIRST SESSION=",
-                    "#MOVES SECOND SESSION=",
-                    "#MINUTES SECOND SESSION=",
-                    "#ADJUDICATED=",
-                    "#FINISH",
-                )
-            ),
-            bool(
-                conf.get_configuration_value(constants.SHOW_VALUE_BOUNDARY)
-                == constants.SHOW_VALUE_BOUNDARY_TRUE
-            ),
+            self._NEW_FILE_TEXT,
+            self._show_value_boundary(conf),
+            self._NO_VALUE_TAGS,
         )
         self.content = parser.parse(self.widget, stop_at=None)
         self.filename = True
@@ -559,108 +546,80 @@ class Menus(bindings.Bindings):
         exist <filename>.<other ext> is opened and treated as the .txt
         version.
 
-        If <filename>.tk_text_dump exists it is used, even if the .txt file
-        exists and is selected, because it has tagging information saved
-        when the file was previously closed.
+        Attempts to open <filename>.tk_text_dump are rejected.
 
-        If both <filename>.tk_text_dump and <filename>.txt exist the file
-        is presented only if their text content is the same.
+        Attempts to open <filename>.txt when <filename>.tk_text_dump exists
+        are accepted even though the caller is expected to save changes to
+        <filename>.txt only.
 
         """
         name, ext = os.path.splitext(filename)
-        if ext not in (TK_TEXT_DUMP_EXT, TEXT_EXT):
-            for extension in (TK_TEXT_DUMP_EXT, TEXT_EXT):
+        if ext not in (self._RSF_EXT,):
+            for extension in (self._RSF_EXT, self._TK_TEXT_DUMP_EXT):
                 if os.path.isfile(name + extension):
+                    if ext == self._TK_TEXT_DUMP_EXT:
+                        tkinter.messagebox.showinfo(
+                            master=self.widget,
+                            message="".join(
+                                (
+                                    "Opening\n\n",
+                                    name + ext,
+                                    "\n\nis not allowed because changes ",
+                                    " would not be saved to both\n\n",
+                                    name + ext,
+                                    "\n\nand\n\n",
+                                    name + self._RSF_EXT,
+                                    "\n\nbut you can open the latter file",
+                                )
+                            ),
+                            title=title,
+                        )
+                        return (None, False, False)
+
+                    # Expressed this way to avoid pylint duplicate-code
+                    # report for the message argument.
+                    # See method in submission module with same name.
                     tkinter.messagebox.showinfo(
                         master=self.widget,
-                        message="".join(
+                        message=(name + ext).join(
                             (
-                                "Cannot open '",
-                                name,
-                                "' because '",
-                                name + extension + "' exists",
+                                "Cannot open\n\n",
+                                (name + extension).join(
+                                    (
+                                        "\n\nbecause\n\n",
+                                        "\n\nexists",
+                                    )
+                                ),
                             )
                         ),
                         title=title,
                     )
+
                     return (None, False, False)
-            dumptext = None
-            dump = None
             with open(filename, mode="r", encoding=self.encoding) as inp:
                 text = inp.read()
         else:
-            dumpname = name + TK_TEXT_DUMP_EXT
-            if os.path.isfile(dumpname):
-                with open(dumpname, mode="r", encoding=self.encoding) as inp:
-                    filestring = inp.read()
-                try:
-                    dump = ast.literal_eval(filestring)
-                except SyntaxError:
+            textname = name + self._RSF_EXT
+            if os.path.isfile(textname):
+                if os.path.isfile(name + self._TK_TEXT_DUMP_EXT):
                     tkinter.messagebox.showinfo(
                         master=self.widget,
                         message="".join(
                             (
-                                "Cannot show '",
-                                name,
-                                "' content because a data format ",
-                                " problem was found",
+                                "Any changes made to\n\n",
+                                textname,
+                                "\n\nwill not be saved to\n\n",
+                                name + self._TK_TEXT_DUMP_EXT,
+                                "\n\nas well",
                             )
                         ),
                         title=title,
                     )
-                    return (None, False, False)
-                (
-                    dumptext,
-                    text_without_tag_elide,
-                ) = self._get_text_without_tag_elide(dump)
-            else:
-                dump = None
-                dumptext = None
-            textname = name + TEXT_EXT
-            if os.path.isfile(textname):
                 with open(textname, mode="r", encoding=self.encoding) as inp:
                     text = inp.read()
             else:
                 text = None
-            if dump is not None and text is not None:
-                if text_without_tag_elide != text:
-                    tkinter.messagebox.showinfo(
-                        master=self.widget,
-                        message=" ".join(
-                            (
-                                "Cannot open '",
-                                name,
-                                "' because text from '",
-                                TK_TEXT_DUMP_EXT,
-                                "' and '",
-                                TEXT_EXT,
-                                "' files is diferrent",
-                            )
-                        ),
-                        title=title,
-                    )
-                    return (None, False, False)
-        return (name, text if dumptext is None else dumptext, dump)
-
-    @staticmethod
-    def _get_text_without_tag_elide(dump):
-        """Return text from dump ignoring text with tag 'elided'."""
-        ui_bound_tag = constants.UI_VALUE_BOUNDARY_TAG
-        ttd_text = constants.TK_TEXT_DUMP_TEXT
-        ttd_tagon = constants.TK_TEXT_DUMP_TAGON
-        ttd_tagoff = constants.TK_TEXT_DUMP_TAGOFF
-        dumptext = "".join(e[1] for e in dump if e[0] == ttd_text)
-        text_without_tag_elide = []
-        elide = False
-        for item in dump:
-            if item[0] == ttd_text and not elide:
-                text_without_tag_elide.append(item[1])
-            elif item[1] == ui_bound_tag:
-                if item[0] == ttd_tagon:
-                    elide = True
-                elif item[0] == ttd_tagoff:
-                    elide = False
-        return dumptext, "".join(text_without_tag_elide)
+        return (name, text, None)
 
     def quit_edit(self):
         """Quit application, after confirmation if unsaved edits exist."""
@@ -707,7 +666,7 @@ class Menus(bindings.Bindings):
             title=title,
         )
         if dlg:
-            conf = configuration.Configuration()
+            conf = self._make_configuration()
             self._save_file(self.filename)
             conf.set_configuration_value(
                 constants.RECENT_RESULTS_FORMAT_FILE,
@@ -734,14 +693,14 @@ class Menus(bindings.Bindings):
     def _save_file_as(self, title="Save As"):
         """Return True if widget *.txt and *.tk_text_dump files are saved."""
         widget = self.widget
-        conf = configuration.Configuration()
+        conf = self._make_configuration()
         filename = tkinter.filedialog.asksaveasfilename(
             parent=widget,
             title=title,
-            defaultextension=".txt",
+            defaultextension=self._RSF_EXT,
             filetypes=(
                 ("All files", "*"),
-                ("ECF results submission file", "*.txt"),
+                (self._RSF_TYPE, self._RSF_PATTERN),
             ),
             initialdir=conf.get_configuration_value(
                 constants.RECENT_RESULTS_FORMAT_FILE
@@ -766,20 +725,8 @@ class Menus(bindings.Bindings):
         # final tagoff entries in the dump.
         # The builder.Builder.parse() method has to compensate by stripping
         # trailing newlines.  The parser.Parser.parse() method does not.
-        with open(
-            os.path.splitext(filename)[0] + TEXT_EXT,
-            mode="w",
-            encoding=self.encoding,
-        ) as file:
+        with open(filename, mode="w", encoding=self.encoding) as file:
             file.write(self.get_text_without_tag_bound())
-        with open(
-            os.path.splitext(filename)[0] + TK_TEXT_DUMP_EXT,
-            mode="w",
-            encoding=self.encoding,
-        ) as file:
-            file.write(
-                repr(self.widget.dump("1.0", self.widget.index(tkinter.END)))
-            )
 
     def get_text_without_tag_bound(self):
         """Return text without bound tag from widget.
@@ -813,12 +760,7 @@ class Menus(bindings.Bindings):
         #  The tkinter.Text.get() method does not support the 'displaychars'
         #  option but the underlying tk.Text.get() call does support it (as
         #  stated in the Tcl/Tk text manual page).
-        #  (This hack probably belongs in solentware_misc.workarounds).
-        text = "".join(
-            widget.tk.call(
-                widget._w, "get", "-displaychars", "1.0", tkinter.END
-            )
-        )
+        text = text_get_displaychars(widget, "1.0", tkinter.END)
 
         widget.tag_configure(
             constants.UI_VALUE_BOUNDARY_TAG, elide=tkinter.FALSE
@@ -844,6 +786,19 @@ class Menus(bindings.Bindings):
             title="Quick Start",
         )
         return "break"
+
+    @staticmethod
+    def _make_configuration():
+        """Return a configuration.Configuration instance."""
+        return configuration.Configuration()
+
+    @staticmethod
+    def _show_value_boundary(conf):
+        """Return True if configuration file SHOW_VALUE_BOUNDARY is true."""
+        return bool(
+            conf.get_configuration_value(constants.SHOW_VALUE_BOUNDARY)
+            == constants.SHOW_VALUE_BOUNDARY_TRUE
+        )
 
     # Diagnostic tool.
     @staticmethod

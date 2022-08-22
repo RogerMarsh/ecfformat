@@ -196,7 +196,6 @@ class Inserter:
         )
         for name in self.get_sequence_insert_map_item(sequencekey):
             self._insert_field(name)
-        self._content.set_next_mark(widget)
         widget.mark_set(tkinter.INSERT, restore_insert)
 
     def _insert_record_fields_before_next(self, sequencekey, type_field):
@@ -238,7 +237,6 @@ class Inserter:
                 )
         if widget.get(tkinter.INSERT) != "\n":
             widget.insert(tkinter.INSERT, "\n")
-        self._content.set_next_mark(widget)
         widget.mark_set(tkinter.INSERT, restore_insert)
 
     def _insert_record_fields_after_record(self, sequencekey):
@@ -258,7 +256,6 @@ class Inserter:
         fields = self.get_sequence_insert_map_item(sequencekey)
         for name in fields:
             self._insert_field(name)
-        self._content.set_next_mark(widget)
         widget.mark_set(tkinter.INSERT, restore_insert)
 
     def _insert_fields_in_record(self, sequencekey):
@@ -307,7 +304,6 @@ class Inserter:
             if widget.get(widget.tag_ranges(record_id)[-1]) != "\n":
                 if not starts_on_newline:
                     widget.insert(tkinter.INSERT, "\n")
-        self._content.set_next_mark(widget)
         widget.mark_set(tkinter.INSERT, restore_insert)
 
     @staticmethod
@@ -345,7 +341,6 @@ class Inserter:
             )
         else:
             content.insert_name_value(widget, constants.FINISH, None, None)
-        content.set_next_mark(widget)
         widget.mark_set(tkinter.INSERT, restore_insert)
 
 

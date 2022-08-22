@@ -38,21 +38,9 @@ class Miscellaneous(menus.Menus):
             and widget.compare(range_[1], ">=", index)
         ):
             return range_
-        character = widget.get(index + "-1c")
-        tag_names = widget.tag_names(index + "-1c")
-        if self.content.value_edge:
-            if (
-                tag_names
-                and character == constants.BOUNDARY
-                and tag_names[0] == constants.UI_VALUE_BOUNDARY_TAG
-            ):
-                range_ = widget.tag_nextrange(constants.FIELD_VALUE_TAG, index)
-                if range_ and widget.compare(range_[0], "==", index):
-                    return range_
-        if not tag_names and character == constants.NAME_VALUE_SEPARATOR:
-            range_ = widget.tag_nextrange(constants.FIELD_VALUE_TAG, index)
-            if range_ and widget.compare(range_[0], "==", index):
-                return range_
+        range_ = widget.tag_nextrange(constants.FIELD_VALUE_TAG, index)
+        if range_ and widget.compare(range_[0], "==", index):
+            return range_
         return None
 
     def _value_range_containing_insert_mark(self):

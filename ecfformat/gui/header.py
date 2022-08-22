@@ -10,7 +10,6 @@ from ..core import constants
 from ..core import sequences
 from ..core import header_inserter
 from ..core import content
-from ..core import configuration
 from ..core import deleter
 from . import miscellaneous
 from .menus import define_sequence_insert_map_insert_methods
@@ -83,6 +82,26 @@ class Header(miscellaneous.Miscellaneous):
         constants.COMMENT_LIST.capitalize(): constants.COMMENT.capitalize(),
         constants.COMMENT_PIN.capitalize(): constants.COMMENT.capitalize(),
     }
+    _NEW_FILE_TEXT = "\n".join(
+        (
+            "#EVENT DETAILS",
+            "#EVENT CODE=",
+            "#EVENT NAME=",
+            "#SUBMISSION INDEX=",
+            "#EVENT DATE=",
+            "#FINAL RESULT DATE=",
+            "#RESULTS OFFICER=",
+            "#RESULTS OFFICER ADDRESS=",
+            "#TREASURER=",
+            "#TREASURER ADDRESS=",
+            "#MOVES FIRST SESSION=",
+            "#MINUTES FIRST SESSION=",
+            "#MOVES SECOND SESSION=",
+            "#MINUTES SECOND SESSION=",
+            "#ADJUDICATED=",
+            "#FINISH",
+        )
+    )
 
     def __init__(self, **kargs):
         """Delegate **kargs to superclass then bind Text widget events.
@@ -723,13 +742,11 @@ class Header(miscellaneous.Miscellaneous):
                 widget.get("1.0", tkinter.END),
             )
         )
-        conf = configuration.Configuration()
+        conf = self._make_configuration()
         parser = content.Content(
             text,
-            bool(
-                conf.get_configuration_value(constants.SHOW_VALUE_BOUNDARY)
-                == constants.SHOW_VALUE_BOUNDARY_TRUE
-            ),
+            self._show_value_boundary(conf),
+            None,
         )
         self.content = parser.parse(self.widget, stop_at=None)
 

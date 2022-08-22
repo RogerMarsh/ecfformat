@@ -4,7 +4,9 @@
 
 """ECF results submission file editor."""
 
+import os
 import tkinter
+import ast
 
 from ..core import constants
 from ..core import sequences
@@ -374,6 +376,142 @@ class Submission(header.Header):
             tkinter.messagebox.showinfo(message="FINISH field already present")
             return
         self._inserter.insert_finish(self.widget, self.content)
+
+    def _get_text_and_filename_without_extension(self, filename, title):
+        """Return content of *.txt and *.tk_text_dump variants of filename.
+
+        Attempts to open <filename>.<other ext> are not allowed if either
+        <filename>.txt or <filename>.tk_text_dump exist.  When neither
+        exist <filename>.<other ext> is opened and treated as the .txt
+        version.
+
+        If <filename>.tk_text_dump exists it is used, even if the .txt file
+        exists and is selected, because it has tagging information saved
+        when the file was previously closed.
+
+        If both <filename>.tk_text_dump and <filename>.txt exist the file
+        is presented only if their text content is the same.
+
+        The caller is expected to save changes to both <filename>.txt and
+        <filename>.tk_text_dump.
+
+        """
+        name, ext = os.path.splitext(filename)
+        if ext not in (self._TK_TEXT_DUMP_EXT, self._RSF_EXT):
+            for extension in (self._TK_TEXT_DUMP_EXT, self._RSF_EXT):
+                if os.path.isfile(name + extension):
+                    tkinter.messagebox.showinfo(
+                        master=self.widget,
+                        message="".join(
+                            (
+                                "Cannot open\n\n",
+                                name,
+                                "\n\nbecause\n\n",
+                                name + extension,
+                                "\n\nexists",
+                            )
+                        ),
+                        title=title,
+                    )
+                    return (None, False, False)
+            dumptext = None
+            dump = None
+            with open(filename, mode="r", encoding=self.encoding) as inp:
+                text = inp.read()
+        else:
+            dumpname = name + self._TK_TEXT_DUMP_EXT
+            if os.path.isfile(dumpname):
+                with open(dumpname, mode="r", encoding=self.encoding) as inp:
+                    filestring = inp.read()
+                try:
+                    dump = ast.literal_eval(filestring)
+                except SyntaxError:
+                    tkinter.messagebox.showinfo(
+                        master=self.widget,
+                        message="".join(
+                            (
+                                "Cannot show\n\n",
+                                name,
+                                "\n\ncontent because a data format ",
+                                " problem was found",
+                            )
+                        ),
+                        title=title,
+                    )
+                    return (None, False, False)
+                (
+                    dumptext,
+                    text_without_tag_elide,
+                ) = self._get_text_without_tag_elide(dump)
+            else:
+                dump = None
+                dumptext = None
+            textname = name + self._RSF_EXT
+            if os.path.isfile(textname):
+                with open(textname, mode="r", encoding=self.encoding) as inp:
+                    text = inp.read()
+            else:
+                text = None
+            if dump is not None and text is not None:
+                if text_without_tag_elide != text:
+                    tkinter.messagebox.showinfo(
+                        master=self.widget,
+                        message="".join(
+                            (
+                                "Cannot open\n\n",
+                                name,
+                                "\n\nbecause the text from the ",
+                                self._TK_TEXT_DUMP_EXT,
+                                " and ",
+                                self._RSF_EXT,
+                                " files is different\n\n",
+                                "(changing one of the names will allow both ",
+                                "to be opened and saved as text to be ",
+                                "compared)",
+                            )
+                        ),
+                        title=title,
+                    )
+                    return (None, False, False)
+        return (name, text if dumptext is None else dumptext, dump)
+
+    @staticmethod
+    def _get_text_without_tag_elide(dump):
+        """Return text from dump ignoring text with tag 'elided'."""
+        ui_bound_tag = constants.UI_VALUE_BOUNDARY_TAG
+        ttd_text = constants.TK_TEXT_DUMP_TEXT
+        ttd_tagon = constants.TK_TEXT_DUMP_TAGON
+        ttd_tagoff = constants.TK_TEXT_DUMP_TAGOFF
+        dumptext = "".join(e[1] for e in dump if e[0] == ttd_text)
+        text_without_tag_elide = []
+        elide = False
+        for item in dump:
+            if item[0] == ttd_text and not elide:
+                text_without_tag_elide.append(item[1])
+            elif item[1] == ui_bound_tag:
+                if item[0] == ttd_tagon:
+                    elide = True
+                elif item[0] == ttd_tagoff:
+                    elide = False
+        return dumptext, "".join(text_without_tag_elide)
+
+    def _save_file(self, filename):
+        """Save widget text and dump in *.txt and *.tk_text_dump files."""
+        # The attempt to lose the trailing newline in the widget.get() and
+        # widget.dump() calls by expressing their index2 arguments as
+        # widget.index(tkinter.END + "-1c") fails because it also loses the
+        # final tagoff entries in the dump.
+        # The builder.Builder.parse() method has to compensate by stripping
+        # trailing newlines.  The parser.Parser.parse() method does not.
+        super()._save_file(os.path.splitext(filename)[0] + self._RSF_EXT)
+        with open(
+            os.path.splitext(filename)[0] + self._TK_TEXT_DUMP_EXT,
+            mode="w",
+            encoding=self.encoding,
+        ) as file:
+            file.write(
+                repr(self.widget.dump("1.0", self.widget.index(tkinter.END)))
+            )
 
 
 define_sequence_insert_map_insert_methods(
