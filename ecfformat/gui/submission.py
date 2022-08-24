@@ -13,7 +13,7 @@ from ..core import sequences
 from ..core import submission_inserter
 from ..core import fields
 from . import header
-from .menus import define_sequence_insert_map_insert_methods
+from .editor import define_sequence_insert_map_insert_methods
 
 _RESULT_FIELDS = (
     constants.PIN1,

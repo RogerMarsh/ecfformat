@@ -11,8 +11,8 @@ from ..core import sequences
 from ..core import header_inserter
 from ..core import content
 from ..core import deleter
-from . import miscellaneous
-from .menus import define_sequence_insert_map_insert_methods
+from . import menus
+from . import editor
 
 # Define scrolling events and commands.
 _ACTIONS = (
@@ -59,7 +59,7 @@ class HeaderError(Exception):
     """Exception class for header module."""
 
 
-class Header(miscellaneous.Miscellaneous):
+class Header(menus.Menus):
     """Delegate to superclass then bind events to methods.
 
     The events on the Text widget for the editor are bound to methods
@@ -801,9 +801,8 @@ class Header(miscellaneous.Miscellaneous):
                     print(seq, "\t", "\t", "\t", method_name_suffix(basename))
 
 
-define_sequence_insert_map_insert_methods(
+editor.define_sequence_insert_map_insert_methods(
     class_=Header,
     map_=header_inserter.sequence_insert_map,
     sequence=sequences.HEADER_SEQUENCES,
 )
-del define_sequence_insert_map_insert_methods
