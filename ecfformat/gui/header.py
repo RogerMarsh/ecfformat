@@ -12,47 +12,7 @@ from ..core import header_inserter
 from ..core import content
 from ..core import deleter
 from . import menus
-from . import editor
-
-# Define scrolling events and commands.
-_ACTIONS = (
-    ("<KeyPress-Down>", "next_field", "Next value", "Down"),
-    ("<KeyPress-Up>", "prior_field", "Previous value", "Up"),
-    ("<KeyPress-Left>", "left_one_char_in_field", "Left 1 char", "Left"),
-    ("<KeyPress-Right>", "right_one_char_in_field", "Right 1 char", "Right"),
-    (
-        "<KeyPress-BackSpace>",
-        "delete_left_one_char_in_field",
-        "Delete left",
-        "Backspace",
-    ),
-    (
-        "<KeyPress-Delete>",
-        "delete_right_one_char_in_field",
-        "Delete right",
-        "Delete",
-    ),
-    ("<KeyPress-Home>", "start_of_field", "Value start", "Home"),
-    ("<KeyPress-End>", "end_of_field", "Value end", "End"),
-    ("<Alt-KeyPress-Up>", "first_field", "First field", "Alt-Up"),
-    ("<Alt-KeyPress-Down>", "last_field", "Last field", "Alt-Down"),
-    ("<KeyPress-Prior>", "up_one_line", "Previous line", "PgUp (Prior)"),
-    ("<KeyPress-Next>", "down_one_line", "Next line", "PgDn (Next)"),
-    ("<Shift-KeyPress-Prior>", "up_one_page", "Previous page", "Shift-PgUp"),
-    ("<Shift-KeyPress-Next>", "down_one_page", "Next page", "Shift-PgDn"),
-    (
-        "<Control-KeyPress-Prior>",
-        "see_insert",
-        "Go to insert point",
-        "Control-PgUp",
-    ),
-    (
-        "<Control-KeyPress-Next>",
-        "move_insert_to_middle_line_start",
-        "Move insert point",
-        "Control-PgDn",
-    ),
-)
+from . import method_makers
 
 
 class HeaderError(Exception):
@@ -112,7 +72,6 @@ class Header(menus.Menus):
         """
         super().__init__(**kargs)
         widget = self.widget
-        self._create_inserter()
         self.bind(widget, "<Alt-KeyPress-f>", function=self.return_continue)
         self.bind(widget, "<Alt-KeyPress-s>", function=self.return_continue)
         self.bind(widget, "<Alt-KeyPress-h>", function=self.return_continue)
@@ -168,18 +127,6 @@ class Header(menus.Menus):
         if self.filename:
             self.unbind_all_except_frozen()
             self._bind_events_file_open()
-
-    def _define_scrolling_methods(self):
-        """Define methods for scrolling."""
-        self._define_scrolling_event_and_command_handlers(_ACTIONS)
-
-    def _add_scrolling_commands_to_popup_menu(self):
-        """Set commands for scrolling."""
-        for item in _ACTIONS:
-            command = getattr(self, "_command_" + item[1])
-            self._scroll_menu.add_command(
-                label=item[2], command=command, accelerator=item[3]
-            )
 
     def _handle_up_one_line(self):
         """Handle previous line event."""
@@ -262,85 +209,10 @@ class Header(menus.Menus):
         context = self._get_bindings_context_after_up_or_down()
         self._set_bindings_context_and_ensure_visible(context)
 
-    def _set_bindings_for_context(self, context):
-        """Return False if EVENT DETAILS starts text and context is None.
-
-        The return value is for calls when displaying a popup menu and is
-        ignored otherwise.
-
-        """
-        if context is None:
-            self._unset_current_context_bindings()
-            widget = self.widget
-            first_field = widget.tag_nextrange(constants.FIELD_NAME_TAG, "1.0")
-            if (
-                first_field
-                and widget.compare(first_field[0], "==", "1.1")
-                and constants.EVENT_DETAILS in widget.tag_names(first_field[0])
-            ):
-                return False
-            self._set_insert_event_details_binding()
-        else:
-            self._set_bindings(context)
-            self._set_field_delete_binding()
-        self._show_scroll_bindings_on_popup_menu()
-        return True
-
     def _set_bindings_context_and_ensure_visible(self, context):
         """Set bindings for context and ensure context field is visible."""
         self._set_bindings_for_context(context)
         self._set_colours_and_see()
-
-    def _set_colours_and_see(self, index=tkinter.INSERT):
-        """Set highlight colours of field at index and ensure it is seen.
-
-        index is usually tkinter.INSERT but it can be necessary to set at
-        some other value.
-
-        """
-        widget = self.widget
-        for highlight_tag in (
-            constants.UI_NAME_HIGHLIGHT_TAG,
-            constants.UI_VALUE_HIGHLIGHT_TAG,
-        ):
-            ranges = widget.tag_ranges(highlight_tag)
-            if ranges:
-
-                # Before adding an event handler for <ButtonPress-1> to fix
-                # <KeyPress-Tab>, for example, after editing several values
-                # selected by <ButtonPress-1> leaving multiple ranges for the
-                # two highlighting tags, which breaks the tkinter tag_remove
-                # interface, the following hack straight to the underlying
-                # tk code (assumed) was seen to work.
-                # Hack restored after problem seen after typing in an area
-                # with the value tag, moving to another by pointer, and type
-                # something in the new area.
-                # Here replacing '*ranges' by 'ranges[0], ranges[-1]' is fine.
-                # widget.tag_remove(highlight_tag, *ranges)
-                # widget.tk.call(
-                #     widget._w,
-                #     "tag",
-                #     "remove",
-                #     highlight_tag,
-                #     *ranges,
-                # )
-                widget.tag_remove(highlight_tag, ranges[0], ranges[-1])
-
-        range_ = widget.tag_prevrange(constants.FIELD_NAME_TAG, index + "+1c")
-        if range_:
-            widget.tag_add(constants.UI_NAME_HIGHLIGHT_TAG, *range_)
-            range_ = widget.tag_nextrange(
-                constants.FIELD_VALUE_TAG,
-                range_[1],
-                index + "+1c",
-            )
-            if range_:
-                widget.tag_add(
-                    constants.UI_VALUE_HIGHLIGHT_TAG,
-                    range_[0],
-                    range_[1],
-                )
-        widget.see(index)
 
     def _handle_left_one_char_in_field(self):
         """Handle left one character in value event."""
@@ -430,48 +302,6 @@ class Header(menus.Menus):
             widget.mark_set(tkinter.INSERT, widget.index(ranges[-2]))
             self._set_colours_and_see()
 
-    def _insert_char_in_value(self, event=None):
-        """Handle <KeyPress> event.
-
-        A character can be inserted in a region tagged as a value.  Marks
-        indicate where these regions can be started.
-
-        """
-        char = event.char
-        if char == "" or not char.isprintable():
-            return "break"
-        widget = event.widget
-        assert widget is self.widget
-
-        # Insert character into empty value.
-        if widget.get(
-            tkinter.INSERT + "-1c"
-        ) == constants.NAME_VALUE_SEPARATOR and not widget.tag_names(
-            tkinter.INSERT
-        ):
-            self.content.insert_tagged_char_at_mark(self.widget, char)
-            self._set_colours_and_see()
-            return "break"
-
-        range_ = self._value_range_containing_insert_mark()
-        if range_:
-
-            # For years the tkinter.__init__.Text.insert() docstring has
-            # persuaded me to avoid passing any arguments in *args, but
-            # do tagging in particular by a tag_add() call immediately
-            # after.  In particular the reference to 'An additional tag ...'.
-            # Perhaps because I was checking 'widget.tag_names(range_[0])'
-            # is picking the correct tags, tried the call here and found
-            # it works as I would expect from the Tcl/Tk manual page!!!
-            widget.insert(
-                widget.index(tkinter.INSERT),
-                char,
-                widget.tag_names(range_[0])
-                + (constants.UI_VALUE_HIGHLIGHT_TAG,),
-            )
-
-        return "break"
-
     def _delete_empty_value(self):
         """Delete the elided space characters surrounding the value."""
         if not self.content.value_edge:
@@ -486,29 +316,6 @@ class Header(menus.Menus):
             and widget.compare(range_[1], "==", tkinter.INSERT + "+1c")
         ):
             widget.delete(*range_)
-
-    def _set_bindings_and_highlight(self, event=None):
-        """Handle <ButtonPress-1> event.
-
-        Adjust bindings to fit location of INSERT mark.
-
-        Reset the highlight colours if clicked on a character tagged with
-        'value'.
-
-        """
-        widget = event.widget
-        assert widget is self.widget
-        context = self._get_bindings_context_after_buttonpress()
-        self._set_bindings_for_context(context)
-        range_ = self._value_range_nearest_current_mark()
-        if (
-            range_
-            and widget.compare(range_[0], "<=", tkinter.CURRENT)
-            and widget.compare(range_[1], ">=", tkinter.CURRENT)
-        ):
-            self._set_colours_and_see(range_[0])
-        elif self._inserter.context is None:
-            self._set_bindings((None, None, None, None, None, frozenset()))
 
     @staticmethod
     def _dismiss(event=None):
@@ -527,33 +334,6 @@ class Header(menus.Menus):
 
         """
         self._inserter = header_inserter.HeaderInserter()
-
-    def _show_popup_menu(self, event):
-        """Handle <ButtonPress-3> event.
-
-        Move INSERT mark to CURRENT mark (where event happened).
-
-        Adjust bindings to fit location of INSERT mark.
-
-        Reset the highlight colours if clicked on a character tagged with
-        'value'.
-
-        Show popup menu relevant to tag combination at pointer location.
-
-        """
-        assert event.widget is self.widget
-
-        # _get_bindings_context_after_buttonpress() does not currently depend
-        # on tkinter.INSERT but perhaps could; while the new value for
-        # tkinter.INSERT is set before _unset_current_context_bindings() and
-        # _set_bindings() calls elsewhere.
-        # Some bindings for badly formatted files depend on the new setting
-        # of tkinter.INSERT in particular insert EVENT DETAILS.
-        context = self._get_bindings_context_after_buttonpress()
-        self.widget.mark_set(tkinter.INSERT, tkinter.CURRENT)
-
-        if self._set_bindings_for_context(context):
-            self.popup_menu.tk_popup(event.x_root, event.y_root)
 
     def _show_popup_menu_alt_f10(self, event):
         """Handle <Alt-F10> event.
@@ -579,113 +359,6 @@ class Header(menus.Menus):
             self.popup_menu.tk_popup(event.x_root, event.y_root)
         return "break"
 
-    def _inhibit_binding(self, inhibit):
-        """Return True if self.widget has text tagged with a tag in inhibit."""
-        for tag in inhibit:
-            if self.widget.tag_ranges(tag):
-                return True
-        return False
-
-    def _set_bindings(self, context):
-        """Set KeyPress and popup menu bindings for field at context.
-
-        Assume bindings are set correctly if the context has not changed.
-
-        """
-        self._unset_current_context_bindings()
-        if context is None:
-            return
-        self._inserter.context = context
-        part = self._inserter.context.part
-        record = self._inserter.context.record
-        field = self._inserter.context.field
-        siblings = self._inserter.context.siblings
-        method_name_suffix = sequences.method_name_suffix
-        for items in self._sequences:
-            for seq, spart, srecord, sfields, sname, inhibit in items:
-                if siblings.intersection(sname[-1]):
-                    continue
-                if self._inhibit_binding(inhibit):
-                    continue
-                if spart == part and srecord == record and field in sfields:
-                    self._set_event_and_command_bindings(
-                        seq, method_name_suffix(sname), sname[0]
-                    )
-
-    def _set_field_delete_binding(self):
-        """Bind Alt-KeyPress-Delete for location of tkinter.INSERT mark.
-
-        A field or set of fields may be deleted when the insert mark is in a
-        field name.  The self._delete method will choose the appropriate if
-        invoked.
-
-        """
-        widget = self.widget
-        tag_names = set(widget.tag_names(widget.index(tkinter.INSERT)))
-        if constants.FIELD_VALUE_TAG in tag_names:
-            return
-        if constants.FIELD_NAME_TAG in tag_names:
-            self.popup_menu.add_separator()
-            self._set_event_and_command_bindings(
-                "<Alt-Delete>", "alt_delete", "Delete Field"
-            )
-
-    def _show_scroll_bindings_on_popup_menu(self):
-        """Advertize scrolling bindings."""
-        self.popup_menu.add_separator()
-        self.popup_menu.add_cascade(
-            label="Scrolling Actions", menu=self._scroll_menu
-        )
-
-    def _set_insert_event_details_binding(self):
-        """Bind Alt-KeyPress-Insert for location of tkinter.INSERT mark.
-
-        An EVENT DETAILS field may be inserted immediately before the first
-        "#" if the insert point is not tagged constants.FIELD_VALUE_TAG.
-
-        """
-        widget = self.widget
-        tag_names = set(widget.tag_names(widget.index(tkinter.INSERT)))
-        if constants.FIELD_VALUE_TAG not in tag_names:
-            self._set_event_and_command_bindings(
-                "<Alt-Insert>", "alt_insert", "Insert Event Details"
-            )
-
-    def _set_event_and_command_bindings(self, sequence, suffix, label):
-        """Set bindings for sequence as methods named *_<suffix>."""
-        self.bind(
-            self.widget,
-            sequence,
-            function=getattr(self, "_keypress_" + suffix),
-        )
-        self.popup_menu.add_command(
-            label=self._popup_menu_label_map.get(label, label),
-            command=getattr(self, "_command_" + suffix),
-            accelerator=sequence.lstrip("<").rstrip(">"),
-        )
-
-    def _unset_current_context_bindings(self):
-        """Clear KeyPress and popup menu bindings for context being discarded.
-
-        The context is held in self._inserter attribute.
-
-        """
-        widget = self.widget
-        self.bind(widget, "<Alt-KeyPress-Delete>")
-        self.popup_menu.delete(0, tkinter.END)
-        if self._inserter.context is None:
-            return
-        part = self._inserter.context.part
-        record = self._inserter.context.record
-        field = self._inserter.context.field
-        for items in self._sequences:
-            for seq, spart, srecord, sfields, basename, inhibit in items:
-                del basename
-                del inhibit
-                if spart == part and srecord == record and field in sfields:
-                    self.bind(widget, seq)
-        self._inserter.context = None
-
     def _bind_events_file_open(self):
         """Bind events to methods for actions on an open file.
 
@@ -695,20 +368,7 @@ class Header(menus.Menus):
         to remove any context dependent bindings.
 
         """
-        widget = self.widget
-        self.bind(widget, "<KeyPress>", function=self._insert_char_in_value)
-        self.bind(
-            widget,
-            "<ButtonPress-1>",
-            function=self._set_bindings_and_highlight,
-        )
-        self.bind(widget, "<ButtonPress-3>", function=self._show_popup_menu)
-        for item in _ACTIONS:
-            function = getattr(self, "_keypress_" + item[1])
-            self.bind(widget, item[0], function=function)
-
-        widget.mark_set(tkinter.INSERT, "1.0")
-        self._set_bindings((None, None, None, None, None, frozenset()))
+        self._bind_active_editor_actions()
 
     def _bind_events_file_not_open(self):
         """Bind events to methods for file not open.
@@ -801,7 +461,7 @@ class Header(menus.Menus):
                     print(seq, "\t", "\t", "\t", method_name_suffix(basename))
 
 
-editor.define_sequence_insert_map_insert_methods(
+method_makers.define_sequence_insert_map_insert_methods(
     class_=Header,
     map_=header_inserter.sequence_insert_map,
     sequence=sequences.HEADER_SEQUENCES,

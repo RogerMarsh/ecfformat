@@ -10,6 +10,7 @@ import tkinter.messagebox
 import tkinter.filedialog
 
 from . import editor
+from . import method_makers
 from ..core import constants
 from ..core import content
 from ..core import configuration
@@ -28,6 +29,7 @@ class Menus(editor.Editor):
     def __init__(
         self,
         use_toplevel=False,
+        application_name="",
         **kargs,
     ):
         """Create the file and GUI objects.
@@ -39,7 +41,7 @@ class Menus(editor.Editor):
             root = tkinter.Toplevel(**kargs)
         else:
             root = tkinter.Tk()
-        super().__init__(root=root, **kargs)
+        super().__init__(root=root, application_name=application_name, **kargs)
         self.filename = None
 
     def _create_menubar_menus(self):
@@ -466,4 +468,4 @@ class Menus(editor.Editor):
         return configuration.Configuration()
 
 
-editor.define_sequence_insert_map_insert_methods(class_=Menus)
+method_makers.define_sequence_insert_map_insert_methods(class_=Menus)
