@@ -111,21 +111,21 @@ class Header(menus.Menus):
         """Delegate then destroy bindings."""
         super().close_file()
         if not self.filename:
-            self.unbind_all_except_frozen()
+            self.unbind_all_handlers_except_frozen()
             self._bind_events_file_not_open()
 
     def file_open(self):
         """Delegate then apply bindings."""
         super().file_open()
         if self.filename:
-            self.unbind_all_except_frozen()
+            self.unbind_all_handlers_except_frozen()
             self._bind_events_file_open()
 
     def file_new(self):
         """Delegate then apply bindings."""
         super().file_new()
         if self.filename:
-            self.unbind_all_except_frozen()
+            self.unbind_all_handlers_except_frozen()
             self._bind_events_file_open()
 
     def _handle_up_one_line(self):
@@ -364,8 +364,8 @@ class Header(menus.Menus):
 
         The 'Alt' bindings to access menubar options are not changed.
 
-        The Bindings.unbind_all_except_frozen() method should be called first
-        to remove any context dependent bindings.
+        The Bindings.unbind_all_handlers_except_frozen() method should be
+        called first to remove any context dependent bindings.
 
         """
         self._bind_active_editor_actions()
@@ -375,8 +375,8 @@ class Header(menus.Menus):
 
         The 'Alt' bindings to access menubar options are not changed.
 
-        The Bindings.unbind_all_except_frozen() method should be called first
-        to remove any context dependent bindings.
+        The Bindings.unbind_all_handlers_except_frozen() method should be
+        called first to remove any context dependent bindings.
 
         """
         widget = self.widget
