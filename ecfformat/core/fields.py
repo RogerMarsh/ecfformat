@@ -270,24 +270,31 @@ class Fields:
             )
             if record_tag_re.match(tag) is not None
         ] + [constants.FIELD_VALUE_TAG, constants.UI_VALUE_HIGHLIGHT_TAG]
+        if not self.value_edge:
+            widget.insert(tkinter.INSERT, char, tag_names)
+            return
+        # Include all marks at INSERT index in search for next_ mark.
         start = widget.index(tkinter.INSERT)
-        if self.value_edge:
-            widget.insert(
-                tkinter.INSERT,
-                constants.BOUNDARY,
-                constants.UI_VALUE_BOUNDARY_TAG,
-            )
-            start = widget.index(tkinter.INSERT)
-        widget.insert(tkinter.INSERT, char, tag_names)
-        if self.value_edge:
-            widget.insert(
-                tkinter.INSERT,
-                constants.BOUNDARY,
-                constants.UI_VALUE_BOUNDARY_TAG,
-            )
         next_ = self.get_next_mark_after_start(widget, start)
-        if next_:
-            widget.mark_set(next_, start)
+        widget.insert(
+            tkinter.INSERT,
+            constants.BOUNDARY,
+            constants.UI_VALUE_BOUNDARY_TAG,
+        )
+        # next_ mark will be set to current INSERT index after inserting
+        # char and boundary.
+        start = widget.index(tkinter.INSERT)
+        widget.insert(tkinter.INSERT, char, tag_names)
+        # INSERT mark will be set to current INSERT index after inserting
+        # boundary.
+        end = widget.index(tkinter.INSERT)
+        widget.insert(
+            tkinter.INSERT,
+            constants.BOUNDARY,
+            constants.UI_VALUE_BOUNDARY_TAG,
+        )
+        widget.mark_set(next_, start)
+        widget.mark_set(tkinter.INSERT, end)
 
     @staticmethod
     def get_next_mark_after_start(widget, start):

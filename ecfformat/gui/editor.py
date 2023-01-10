@@ -288,8 +288,11 @@ class Editor(bindings.Bindings):
             range_ = widget.tag_nextrange(value_tag, mark)
             if not range_:
                 continue
-            for index in reversed(range_):
-                widget.insert(index, boundary, boundary_tag)
+            if widget.compare(widget.index(mark), "==", range_[0]):
+                for index in reversed(range_):
+                    widget.insert(index, boundary, boundary_tag)
+                range_ = widget.tag_nextrange(value_tag, mark)
+                widget.mark_set(mark, range_[0])
 
     def _accept_dump_as_valid(self):
         """Adjust settings to accept dump tags without any checks."""
