@@ -10,14 +10,13 @@ line-length = 79
 
 [project]
 name = "ecfformat"
-version = "1.0.3"
+version = "1.0.4.dev0"
 authors = [
   { name="Roger Marsh", email="roger.marsh@solentware.co.uk" },
 ]
 description = "Prepare ECF results submission files."
 classifiers = [
     "License :: OSI Approved :: BSD License",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -31,7 +30,7 @@ classifiers = [
 license = {file = "LICENCE"}
 readme = "README"
 dependencies = [
-    "solentware-misc==1.6",
+    "solentware-misc==1.7.dev0",
 ]
 
 [project.urls]
