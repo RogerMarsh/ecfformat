@@ -16,7 +16,7 @@ still expected.
 from . import constants
 
 expected_fields = {
-    (constants.EVENT_DETAILS, None,): (
+    (constants.EVENT_DETAILS, None): (
         frozenset(
             (
                 constants.PLAYER_LIST,
@@ -26,7 +26,7 @@ expected_fields = {
         .union(constants.MANDATORY_EVENT_FIELDS)
         .union(constants.OPTIONAL_EVENT_FIELDS)
     ),
-    (constants.MATCH_RESULTS, None,): frozenset(
+    (constants.MATCH_RESULTS, None): frozenset(
         (
             constants.PIN1,
             constants.WHITE_ON,
@@ -34,32 +34,32 @@ expected_fields = {
         )
         + constants.PIN1_SET_TERMINATORS
     ),
-    (constants.PIN1, constants.MATCH_RESULTS,): frozenset(
+    (constants.PIN1, constants.MATCH_RESULTS): frozenset(
         constants.FIELDS_ALLOWED_IN_MATCH + constants.PIN1_SET_TERMINATORS
     ),
-    (constants.PIN1, constants.OTHER_RESULTS,): frozenset(
+    (constants.PIN1, constants.OTHER_RESULTS): frozenset(
         constants.FIELDS_ALLOWED_IN_OTHER + constants.PIN1_SET_TERMINATORS
     ),
-    (constants.PIN1, constants.SECTION_RESULTS,): frozenset(
+    (constants.PIN1, constants.SECTION_RESULTS): frozenset(
         constants.FIELDS_ALLOWED_IN_SECTION + constants.PIN1_SET_TERMINATORS
     ),
     (
         constants.FINISH,
         None,
     ): frozenset(),
-    (constants.COLUMN, constants.PLAYER_LIST,): frozenset(
+    (constants.COLUMN, constants.PLAYER_LIST): frozenset(
         (
             constants.COLUMN,
             constants.TABLE_START,
         )
     ),
-    (constants.TABLE_START, None,): frozenset(
+    (constants.TABLE_START, None): frozenset(
         (
             constants.TABLE_VALUE,
             constants.TABLE_END,
         )
     ),
-    (constants.PLAYER_LIST, None,): frozenset(
+    (constants.PLAYER_LIST, None): frozenset(
         (
             constants.COMMENT,
             constants.PIN,
@@ -70,7 +70,7 @@ expected_fields = {
     # with the Table class.  Element [1] of the key was introduced to cope
     # with the different fields allowed in the PIN1 set depending on the
     # parent part, MATCH RESULTS for example.
-    (constants.PIN, constants.PLAYER_LIST,): frozenset(
+    (constants.PIN, constants.PLAYER_LIST): frozenset(
         constants.FIELDS_ALLOWED_IN_PLAYERS
         + constants.PLAYERS_SET_TERMINATORS
         + (constants.COLUMN,)
@@ -236,8 +236,7 @@ class ExpectedFields:
         self._expected_fields.discard(constants.MINUTES_FOR_GAME)
         return True
 
-    @staticmethod
-    def validate_event_details_field_combinations():
+    def validate_event_details_field_combinations(self):
         """Return True.
 
         The EventDetails class overrides this method to provide validation

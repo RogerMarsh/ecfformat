@@ -17,5 +17,5 @@ if __name__ == "__main__":
     try:
         from .gui.header import Header
     except (ImportError, SyntaxError) as error:
-        report_application_import_exception()
+        report_application_import_exception(error)
     main(Header, APPLICATION_NAME)

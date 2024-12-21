@@ -10,7 +10,7 @@ line-length = 79
 
 [project]
 name = "ecfformat"
-version = "1.0.4"
+version = "1.0.5"
 authors = [
   { name="Roger Marsh", email="roger.marsh@solentware.co.uk" },
 ]

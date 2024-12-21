@@ -131,8 +131,7 @@ class Inserter:
             return value
         raise InserterError("No field list found for " + key)
 
-    @staticmethod
-    def _get_sequence_insert_map():
+    def _get_sequence_insert_map(self):
         """Return list containing sequence_insert_map or empty list."""
         if sequence_insert_map:
             return [sequence_insert_map]

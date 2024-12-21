@@ -16,12 +16,14 @@ from ..core import sequences
 
 
 def _define_insert_method(sequence_insert_map_item):
+    # pydocstyle D202 'no blank lines allowed after function docstring'.
+    # black insists on a blank line line at that location.
     """Define method to insert sequence_insert_map_item fields into widget.
 
     The defined method is expected to be called in response to an event in
     tkinter where no further event handlers should be called.
-
     """
+
     # self is not an instance of Header, or a subclass, here so attracts a
     # 'protected-access' warning from pylint if the 'self._inserter' method
     # is called directly.
