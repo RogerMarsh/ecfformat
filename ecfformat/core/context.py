@@ -38,7 +38,6 @@ before any records within the part.
 
 import collections
 
-
 Context = collections.namedtuple(
     "Context", ["part", "record", "field", "part_id", "record_id", "siblings"]
 )

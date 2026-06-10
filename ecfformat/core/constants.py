@@ -8,6 +8,7 @@ These are the field names, separators, and the standard values for the
 fields which have them.
 
 """
+
 RECENT_RESULTS_FORMAT_FILE = "resultsformatfile"
 SHOW_VALUE_BOUNDARY = "showvalueboundary"
 SHOW_VALUE_BOUNDARY_TRUE = "True"

@@ -10,7 +10,7 @@ line-length = 79
 
 [project]
 name = "ecfformat"
-version = "1.0.7"
+version = "1.0.8"
 authors = [
   { name="Roger Marsh", email="roger.marsh@solentware.co.uk" },
 ]
@@ -30,7 +30,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENCE"]
 readme = "README"
 dependencies = [
-    "solentware-misc==1.7.2",
+    "solentware-misc==1.7.3",
 ]
 
 [project.urls]

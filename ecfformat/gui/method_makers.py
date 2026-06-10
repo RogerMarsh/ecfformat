@@ -12,6 +12,7 @@ called by the generated methods, where the user is expected to supply a
 value after the '='.
 
 """
+
 from ..core import sequences
 
 
